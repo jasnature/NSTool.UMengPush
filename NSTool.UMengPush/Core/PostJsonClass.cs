@@ -17,7 +17,9 @@ namespace NSTool.UMengPush.Core
         /// </summary>
         public string appkey { get; set; }
         /// <summary>
-        /// 必填 时间戳，10位或者13位均可，时间戳有效期为10分钟
+        /// 注意：该值由UMengMessagePush自动生成，无需主动赋值
+        /// 
+        /// 必填 时间戳，10位或者13位均可，时间戳有效期为10分钟 
         /// </summary>
         public string timestamp { get; set; }
         /// <summary>

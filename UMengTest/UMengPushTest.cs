@@ -65,10 +65,9 @@ namespace UMengTest
 
             postJson.description = "评论提醒-UID:" + 5583;
 
-            ReturnJsonClass resu = umPush.SendMessage(postJson);
+            //ReturnJsonClass resu = umPush.SendMessage(postJson);
 
-            //umPush.SendMessage(postJson, callBack);
-            Assert.AreEqual(resu.ret, "SUCCESS", true);
+            umPush.AsynSendMessage(postJson, callBack);
         }
 
         private void callBack(ReturnJsonClass result)
