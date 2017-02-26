@@ -108,7 +108,7 @@ namespace NSTool.UMengPush
         private RestRequest CreateHttpRequest(PostUMengJson paramsJsonObj)
         {
             string bodyJson = InitParamsAndUrl(paramsJsonObj);
-            this.apiFullUrl = string.Concat(requestProtocol, "://", hostUrl, "/", postPath, "/");
+            
             if (requestClient == null)
             {
                 requestClient = new RestClient(apiFullUrl);
@@ -125,7 +125,9 @@ namespace NSTool.UMengPush
         private string InitParamsAndUrl(PostUMengJson paramsJsonObj)
         {
             if (string.IsNullOrEmpty(paramsJsonObj.appkey)) paramsJsonObj.appkey = this.appkey;
-
+            //重置url
+            this.apiFullUrl = string.Concat(requestProtocol, "://", hostUrl, "/", postPath, "/");
+            
             paramsJsonObj.timestamp = GetTimeStamp().ToString();
 
             //string json = RestSharp.SimpleJson.SerializeObject(paramsJsonObj);
