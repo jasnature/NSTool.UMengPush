@@ -108,7 +108,7 @@ namespace NSTool.UMengPush
         private RestRequest CreateHttpRequest(PostUMengJson paramsJsonObj)
         {
             string bodyJson = InitParamsAndUrl(paramsJsonObj);
-
+            this.apiFullUrl = string.Concat(requestProtocol, "://", hostUrl, "/", postPath, "/");
             if (requestClient == null)
             {
                 requestClient = new RestClient(apiFullUrl);
