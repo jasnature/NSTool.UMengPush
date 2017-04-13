@@ -32,9 +32,5 @@ namespace NSTool.UMengPush.Core
         /// 当"ret"为"FAIL"时,包含如下参数:错误码详见附录I。
         /// </summary>
         public string error_code { get; set; }
-        /// <summary>
-        /// 如果开发者填写了thirdparty_id, 接口也会返回该值。
-        /// </summary>
-        public string thirdparty_id { get; set; }
     }
 }

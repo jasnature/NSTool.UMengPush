@@ -5,11 +5,10 @@ using System.Text;
 
 namespace NSTool.UMengPush.Core
 {
-    public interface IPush
+    public interface IPush<T> where T : BasePostJson
     {
-        ReturnJsonClass SendMessage(PostUMengJson paramsJsonObj);
+        ReturnJsonClass SendMessage(T paramsJsonObj);
 
-        void AsynSendMessage(PostUMengJson paramsJsonObj, Action<ReturnJsonClass> callback);
-
+        void AsynSendMessage(T paramsJsonObj, Action<ReturnJsonClass> callback);
     }
 }

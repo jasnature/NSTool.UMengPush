@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using NSTool.UMengPush.Base;
 using NSTool.UMengPush.Core;
+using Newtonsoft.Json;
 
 namespace NSTool.UMengPush
 {
@@ -14,15 +15,11 @@ namespace NSTool.UMengPush
     /// 友盟消息推送
     /// create by jasnature
     /// </summary>
-    public class UMengMessagePush : IPush, IDisposable
+    public class UMengMessagePush<T> : IPush<T>, IDisposable where T : BasePostJson
     {
         #region 内部字段
 
         private RestClient requestClient;
-
-        private volatile static Dictionary<Type, PropertyInfo[]> cacheParamType = null;
-
-        private ReaderWriterLock lockrw = null;
 
         private MD5CryptionUMeng md5;
 
@@ -46,7 +43,6 @@ namespace NSTool.UMengPush
 
         #endregion
 
-
         #region 公共方法
 
         /// <summary>
@@ -60,11 +56,7 @@ namespace NSTool.UMengPush
             this.appkey = appkey;
             this.appMasterSecret = appMasterSecret;
             this.md5 = new MD5CryptionUMeng();
-            cacheParamType = new Dictionary<Type, PropertyInfo[]>(10);
-            this.lockrw = new ReaderWriterLock();
         }
-
-
 
         /// <summary>
         /// 推送消息，注意如果初始化本类已经填写了appkey，
@@ -73,7 +65,7 @@ namespace NSTool.UMengPush
         /// </summary>
         /// <param name="paramsJsonObj"></param>
         /// <returns></returns>
-        public ReturnJsonClass SendMessage(PostUMengJson paramsJsonObj)
+        public ReturnJsonClass SendMessage(T paramsJsonObj)
         {
             var request = CreateHttpRequest(paramsJsonObj);
             var resultResponse = requestClient.Execute(request);
@@ -88,16 +80,13 @@ namespace NSTool.UMengPush
         /// </summary>
         /// <param name="paramsJsonObj"></param>
         /// <param name="callback"></param>
-        public void AsynSendMessage(PostUMengJson paramsJsonObj, Action<ReturnJsonClass> callback)
+        public void AsynSendMessage(T paramsJsonObj, Action<ReturnJsonClass> callback)
         {
             var request = CreateHttpRequest(paramsJsonObj);
 
             requestClient.ExecuteAsync(request, resultResponse =>
             {
-                if (callback != null)
-                {
-                    callback(SimpleJson.DeserializeObject<ReturnJsonClass>(resultResponse.Content));
-                }
+                callback?.Invoke(SimpleJson.DeserializeObject<ReturnJsonClass>(resultResponse.Content));
             });
         }
 
@@ -105,10 +94,10 @@ namespace NSTool.UMengPush
 
         #region 私有辅助方法
 
-        private RestRequest CreateHttpRequest(PostUMengJson paramsJsonObj)
+        private RestRequest CreateHttpRequest(T paramsJsonObj)
         {
             string bodyJson = InitParamsAndUrl(paramsJsonObj);
-            
+
             if (requestClient == null)
             {
                 requestClient = new RestClient(apiFullUrl);
@@ -118,22 +107,20 @@ namespace NSTool.UMengPush
             var request = new RestRequest(Method.POST);
             request.RequestFormat = DataFormat.Json;
             request.AddParameter("application/json", bodyJson, ParameterType.RequestBody);
-            //request.AddJsonBody(paramsJsonObj);
             return request;
         }
 
-        private string InitParamsAndUrl(PostUMengJson paramsJsonObj)
+        private string InitParamsAndUrl(T paramsJsonObj)
         {
             if (string.IsNullOrEmpty(paramsJsonObj.appkey)) paramsJsonObj.appkey = this.appkey;
             //重置url
             this.apiFullUrl = string.Concat(requestProtocol, "://", hostUrl, "/", postPath, "/");
-            
+
             paramsJsonObj.timestamp = GetTimeStamp().ToString();
 
-            //string json = RestSharp.SimpleJson.SerializeObject(paramsJsonObj);
-            Newtonsoft.Json.JsonSerializerSettings jssetting = new Newtonsoft.Json.JsonSerializerSettings();
-            jssetting.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(paramsJsonObj, jssetting);
+            JsonSerializerSettings jssetting = new JsonSerializerSettings();
+            jssetting.NullValueHandling = NullValueHandling.Ignore;
+            string json = JsonConvert.SerializeObject(paramsJsonObj, jssetting);
 
             string calcSign = md5.GenerateMD5(requestMethod + apiFullUrl + json + appMasterSecret).ToLower();
 
@@ -149,55 +136,13 @@ namespace NSTool.UMengPush
         {
             TimeSpan ts = DateTime.UtcNow - new DateTime(1970, 1, 1);
             return Convert.ToUInt32(ts.TotalSeconds);
-        }
-
-        /// <summary>
-        /// 多线程安全缓存参数类型集合
-        /// </summary>
-        private PropertyInfo[] GetCacheParamType<T>(T pb)
-        {
-            Type pbtype = pb.GetType();
-            try
-            {
-                if (cacheParamType.ContainsKey(pbtype))
-                {
-                    return cacheParamType[pbtype];
-                }
-                else
-                {
-                    lockrw.AcquireWriterLock(1000);
-                    if (!cacheParamType.ContainsKey(pbtype))
-                    {
-                        PropertyInfo[] pis = pbtype.GetProperties().OrderBy(p => p.Name).ToArray();
-                        cacheParamType.Add(pbtype, pis);
-                        return pis;
-                    }
-                    else
-                    {
-                        return cacheParamType[pbtype];
-                    }
-                }
-            }
-            finally
-            {
-                if (lockrw.IsReaderLockHeld)
-                {
-                    lockrw.ReleaseReaderLock();
-                }
-                if (lockrw.IsWriterLockHeld)
-                {
-                    lockrw.ReleaseWriterLock();
-                }
-            }
-
-        }
+        }        
 
         #endregion
 
         public void Dispose()
         {
             if (md5 != null) md5.Dispose();
-            if (cacheParamType != null) cacheParamType.Clear();
         }
     }
 }
